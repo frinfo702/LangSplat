@@ -1,15 +1,21 @@
 #!/bin/bash
 
+# =============================================
+# 実行例:
+#   dataset_path="data/sofa" dataset_name="sofa" casename="sofa" bash process.sh
+# =============================================
+
 # get the language feature of the scene
-python preprocess.py --dataset_name $dataset_path
+python preprocess.py --dataset_path $dataset_path
 
 # train the autoencoder
 cd autoencoder
-python train.py --dataset_path $dataset_path --encoder_dims 256 128 64 32 3 --decoder_dims 16 32 64 128 256 256 512 --lr 0.0007 --dataset_name ae_ckpt
+python train.py --dataset_path ../$dataset_path --encoder_dims 256 128 64 32 3 --decoder_dims 16 32 64 128 256 256 512 --lr 0.0007 --dataset_name $dataset_name
 # e.g. python train.py --dataset_path ../data/sofa --encoder_dims 256 128 64 32 3 --decoder_dims 16 32 64 128 256 256 512 --lr 0.0007 --dataset_name sofa
+cd ..
 
 # get the 3-dims language feature of the scene
-python test.py --dataset_name $dataset_path --dataset_name $dataset_name
+python test.py --dataset_path $dataset_path --dataset_name $dataset_name
 # e.g. python test.py --dataset_path ../data/sofa --dataset_name sofa
 
 # ATTENTION: Before you train the LangSplat, please follow https://github.com/graphdeco-inria/gaussian-splatting

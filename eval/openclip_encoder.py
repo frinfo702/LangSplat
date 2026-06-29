@@ -16,7 +16,7 @@ class OpenCLIPNetwork:
             ]
         )
         self.clip_model_type = "ViT-B-16"
-        self.clip_model_pretrained = 'laion2b_s34b_b88k'
+        self.clip_model_pretrained = "laion2b_s34b_b88k"
         self.clip_n_dims = 512
         model, _, _ = open_clip.create_model_and_transforms(
             self.clip_model_type,
@@ -24,16 +24,20 @@ class OpenCLIPNetwork:
             precision="fp16",
         )
         model.eval()
-        
+
         self.tokenizer = open_clip.get_tokenizer(self.clip_model_type)
         self.model = model.to(device)
 
         self.negatives = ("object", "things", "stuff", "texture")
         self.positives = (" ",)
         with torch.no_grad():
-            tok_phrases = torch.cat([self.tokenizer(phrase) for phrase in self.positives]).to(device)
+            tok_phrases = torch.cat(
+                [self.tokenizer(phrase) for phrase in self.positives]
+            ).to(device)
             self.pos_embeds = model.encode_text(tok_phrases)
-            tok_phrases = torch.cat([self.tokenizer(phrase) for phrase in self.negatives]).to(device)
+            tok_phrases = torch.cat(
+                [self.tokenizer(phrase) for phrase in self.negatives]
+            ).to(device)
             self.neg_embeds = model.encode_text(tok_phrases)
         self.pos_embeds /= self.pos_embeds.norm(dim=-1, keepdim=True)
         self.neg_embeds /= self.neg_embeds.norm(dim=-1, keepdim=True)
@@ -51,9 +55,11 @@ class OpenCLIPNetwork:
         sims = torch.stack((repeated_pos, negative_vals), dim=-1)
         softmax = torch.softmax(10 * sims, dim=-1)
         best_id = softmax[..., 0].argmin(dim=1)
-        return torch.gather(softmax, 1, best_id[..., None, None].expand(best_id.shape[0], len(self.negatives), 2))[
-            :, 0, :
-        ]
+        return torch.gather(
+            softmax,
+            1,
+            best_id[..., None, None].expand(best_id.shape[0], len(self.negatives), 2),
+        )[:, 0, :]
 
     def encode_image(self, input, mask=None):
         processed_input = self.process(input).half()
@@ -62,23 +68,25 @@ class OpenCLIPNetwork:
     def encode_text(self, text_list, device):
         text = self.tokenizer(text_list).to(device)
         return self.model.encode_text(text)
-    
+
     def set_positives(self, text_list):
         self.positives = text_list
         with torch.no_grad():
             tok_phrases = torch.cat(
                 [self.tokenizer(phrase) for phrase in self.positives]
-                ).to(self.neg_embeds.device)
+            ).to(self.neg_embeds.device)
             self.pos_embeds = self.model.encode_text(tok_phrases)
         self.pos_embeds /= self.pos_embeds.norm(dim=-1, keepdim=True)
-    
+
     def set_semantics(self, text_list):
         self.semantic_labels = text_list
         with torch.no_grad():
-            tok_phrases = torch.cat([self.tokenizer(phrase) for phrase in self.semantic_labels]).to("cuda")
+            tok_phrases = torch.cat(
+                [self.tokenizer(phrase) for phrase in self.semantic_labels]
+            ).to("cuda")
             self.semantic_embeds = self.model.encode_text(tok_phrases)
         self.semantic_embeds /= self.semantic_embeds.norm(dim=-1, keepdim=True)
-    
+
     def get_semantic_map(self, sem_map: torch.Tensor) -> torch.Tensor:
         # embed: 3xhxwx512
         n_levels, h, w, c = sem_map.shape
@@ -96,7 +104,7 @@ class OpenCLIPNetwork:
     def get_max_across(self, sem_map):
         n_phrases = len(self.positives)
         n_phrases_sims = [None for _ in range(n_phrases)]
-        
+
         n_levels, h, w, _ = sem_map.shape
         clip_output = sem_map.permute(1, 2, 0, 3).flatten(0, 1)
 
@@ -107,6 +115,6 @@ class OpenCLIPNetwork:
                 pos_prob = probs[..., 0:1]
                 n_phrases_sims[j] = pos_prob
             n_levels_sims[i] = torch.stack(n_phrases_sims)
-        
+
         relev_map = torch.stack(n_levels_sims).view(n_levels, n_phrases, h, w)
         return relev_map

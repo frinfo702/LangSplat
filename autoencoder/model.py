@@ -10,20 +10,27 @@ class Autoencoder(nn.Module):
             if i == 0:
                 encoder_layers.append(nn.Linear(512, encoder_hidden_dims[i]))
             else:
-                encoder_layers.append(torch.nn.BatchNorm1d(encoder_hidden_dims[i-1]))
+                encoder_layers.append(torch.nn.BatchNorm1d(encoder_hidden_dims[i - 1]))
                 encoder_layers.append(nn.ReLU())
-                encoder_layers.append(nn.Linear(encoder_hidden_dims[i-1], encoder_hidden_dims[i]))
+                encoder_layers.append(
+                    nn.Linear(encoder_hidden_dims[i - 1], encoder_hidden_dims[i])
+                )
         self.encoder = nn.ModuleList(encoder_layers)
-             
+
         decoder_layers = []
         for i in range(len(decoder_hidden_dims)):
             if i == 0:
-                decoder_layers.append(nn.Linear(encoder_hidden_dims[-1], decoder_hidden_dims[i]))
+                decoder_layers.append(
+                    nn.Linear(encoder_hidden_dims[-1], decoder_hidden_dims[i])
+                )
             else:
                 decoder_layers.append(nn.ReLU())
-                decoder_layers.append(nn.Linear(decoder_hidden_dims[i-1], decoder_hidden_dims[i]))
+                decoder_layers.append(
+                    nn.Linear(decoder_hidden_dims[i - 1], decoder_hidden_dims[i])
+                )
         self.decoder = nn.ModuleList(decoder_layers)
         print(self.encoder, self.decoder)
+
     def forward(self, x):
         for m in self.encoder:
             x = m(x)
@@ -32,15 +39,15 @@ class Autoencoder(nn.Module):
             x = m(x)
         x = x / x.norm(dim=-1, keepdim=True)
         return x
-    
+
     def encode(self, x):
         for m in self.encoder:
-            x = m(x)    
+            x = m(x)
         x = x / x.norm(dim=-1, keepdim=True)
         return x
 
     def decode(self, x):
         for m in self.decoder:
-            x = m(x)    
+            x = m(x)
         x = x / x.norm(dim=-1, keepdim=True)
         return x
