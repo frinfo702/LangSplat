@@ -16,9 +16,9 @@ from argparse import ArgumentParser, Namespace
 from random import randint
 
 import torch
-from arguments import ModelParams, OptimizationParams, PipelineParams
-from gaussian_renderer import network_gui, render
-from scene import GaussianModel, Scene
+from .arguments import ModelParams, OptimizationParams, PipelineParams
+from .gaussian_renderer import network_gui, render
+from .scene import GaussianModel, Scene
 from tqdm import tqdm
 from utils.general_utils import safe_state
 from utils.image_utils import psnr
